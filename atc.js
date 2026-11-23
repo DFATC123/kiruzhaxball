@@ -45,7 +45,6 @@ const tips = [
     "Tip: have fun and enjoy the game; a positive attitude enhances performance."
 ];
 
-// CSS base với token màu
 const constrolsStyleBase = `
 #joystick,#kick{z-index:100;bottom:CONTROLS_MARGINvw}
 .neo{
@@ -83,14 +82,20 @@ const DEFAULT_COLORS = {
 };
 
 const COLOR_LABELS = {
-  joyBg: "Joystick BG",
-  joyBorder: "Joystick Border",
-  thumbBg: "Thumb BG",
-  thumbBorder: "Thumb Border",
-  kickBg: "Kick BG",
-  kickBorder: "Kick Border",
-  kickIcon: "Kick Icon"
+  joyBg: "Nền Joystick",
+  joyBorder: "Viền Joystick",
+  thumbBg: "Nền Núm (Thumb)",
+  thumbBorder: "Viền Núm",
+  kickBg: "Nền Nút Đá",
+  kickBorder: "Viền Nút Đá",
+  kickIcon: "Icon Nút Đá"
 };
+
+// Bảng màu có sẵn cho Mobile dễ chọn
+const PRESET_COLORS = [
+  "#c2c2c255", "#ecf0f3cc", "#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff",
+  "#1a2125", "#ffffff", "#ff9800", "#4caf50", "#2196f3", "#e91e63", "#9c27b0", "#000000"
+];
 
 const countryFilterHandler = document.createElement('style');
 const hideButtons = document.createElement('style');
@@ -99,17 +104,12 @@ hideButtons.innerHTML = "button{display:none}";
 gameFrame.document.head.appendChild(hideButtons);
 
 const controlsHandler = document.createElement('style');
-
 const copyrightHandler = document.createElement("span");
-
 const aboutHandler = document.createElement("div");
-
 const inputOptionsHandler = document.createElement("div");
-
 const config = { childList: true, subtree: true };
 
 ///////////////////////////////////////// VARIABLES /////////////////////////////////////////
-
 let firstTime = true;
 let canResetJoystick = true;
 let lastMessage;
@@ -118,7 +118,6 @@ let kickButton;
 let floatingBtn;
 
 ///////////////////////////////////////// MAIN /////////////////////////////////////////
-
 var checkLoaderInterval = setInterval(checkLoader, 1000);
 
 function checkLoader() {
@@ -132,7 +131,6 @@ function checkLoader() {
 function init() {
     document.querySelector('.rightbar').remove();
     document.querySelector('.header').remove();
-
     document.querySelector("meta[name=viewport]").setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=0');
 
     setupCountryFilter();
@@ -151,8 +149,8 @@ function init() {
 
     gameFrame.head.innerHTML += "<style>button{display: }</style>";
     aboutHandler.setAttribute('data-hook', 'about');
-    aboutHandler.style.cssText = 'background: #1a2125; position: absolute; width: 100%; height: 100%; display: none; justify-content: center; flex-direction: column; align-items: center; margin: 0;';
-    aboutHandler.innerHTML = '<div class="dialog basic-dialog" style="max-width: 50%;"><h1>About us</h1><p>We are Vixel Dev, a small development studio that wants the Haxball community to grow, without hurting its owners. We do not monetize this application, as it is free and contains no ads. </p><p>We want to thank @basro for creating this game, and we hope not to disturb with this port. </p><p></p><p>To contact us:</p><p>E-mail: vixeldev@gmail.com</p><p>Instragram: @haxballmobile</p><div class="buttons"><button data-hook="closeabout">Close</button></div></div>';
+    aboutHandler.style.cssText = 'background: #1a2125; position: absolute; width: 100%; height: 100%; display: none; justify-content: center; flex-direction: column; align-items: center; margin: 0; z-index: 999;';
+    aboutHandler.innerHTML = '<div class="dialog basic-dialog" style="max-width: 80%;"><h1>About us</h1><p>We are Vixel Dev, a small development studio that wants the Haxball community to grow, without hurting its owners. We do not monetize this application, as it is free and contains no ads. </p><p>We want to thank @basro for creating this game, and we hope not to disturb with this port. </p><p></p><p>To contact us:</p><p>E-mail: vixeldev@gmail.com</p><p>Instragram: @haxballmobile</p><div class="buttons"><button data-hook="closeabout">Close</button></div></div>';
 
     body.parentNode.appendChild(aboutHandler);
     if (localStorage.getItem("firstTime") === null) {
@@ -164,76 +162,45 @@ function init() {
     body.parentNode.querySelector('[data-hook="closeabout"]').addEventListener("click", function() {
         aboutHandler.style.display = 'none';
     });
-
-    console.log("PAGE_LOADED")
 }
 
 ///////////////////////////////////////// UTILS /////////////////////////////////////////
-
-function insertAfter(e, n) {
-    e.parentNode.insertBefore(n, e.nextSibling);
-}
-
-function pickRandom(arr) {
-    if (!Array.isArray(arr) || arr.length === 0) {
-        return null;
-    }
-    const randomIndex = Math.floor(Math.random() * arr.length);
-    return arr[randomIndex];
-}
-
-function getByDataHook(dataHook) {
-    return body.querySelector('[data-hook="' + dataHook + '"]');
-}
-
+function insertAfter(e, n) { e.parentNode.insertBefore(n, e.nextSibling); }
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function getByDataHook(dataHook) { return body.querySelector('[data-hook="' + dataHook + '"]'); }
 function openHaxballURL(uri) {
     const code = uri.replace(/^https?:\/\/(www\.)?haxball\.com\/play\?c=/, "");
-    if (code.length > 0) {
-        window.location.replace("https://www.haxball.com/play?c=" + code);
-    }
+    if (code.length > 0) window.location.replace("https://www.haxball.com/play?c=" + code);
 }
-
 function searchRoomlist() {
     const searchValue = getByDataHook('search').value.toLowerCase();
-    const rows = body.querySelectorAll('tr');
-    rows.forEach(row => {
+    body.querySelectorAll('tr').forEach(row => {
         const spanName = row.querySelector('span[data-hook="name"]');
-        if (spanName && !spanName.textContent.toLowerCase().includes(searchValue)) {
-            row.style.display = 'none'
-        } else {
-            row.removeAttribute("style");
-        }
+        if (spanName && !spanName.textContent.toLowerCase().includes(searchValue)) row.style.display = 'none'
+        else row.removeAttribute("style");
     });
 }
 
 ///////////////////////////////////////// UI /////////////////////////////////////////
-
 function setupCountryFilter() {
     countryFilterHandler.innerHTML = "";
     countryFilterHandler.name = "stylesheet";
     gameFrame.document.head.appendChild(countryFilterHandler);
 }
-
 function setupCopyright() {
     copyrightHandler.setAttribute("data-hook", "copyright");
     copyrightHandler.setAttribute("style", "text-align:center;position:absolute;bottom:15px;width:100%; display: block");
     copyrightHandler.innerHTML = '2024 Vixel Dev. Original game by Mario Carbajal (@basro)';
     document.body.appendChild(copyrightHandler);
 }
-
-function copyright(s) {
-    copyrightHandler.style.display = s ? "block" : "none";
-}
+function copyright(s) { copyrightHandler.style.display = s ? "block" : "none"; }
 
 function updateUI() {
     if (body.querySelector('.choose-nickname-view')) {
-        showControls(false);
-        copyright(true);
-        console.log("PAGE_LOADED")
+        showControls(false); copyright(true);
     }
     if (body.querySelector('.roomlist-view')) {
-        copyright(false);
-        firstTime = true;
+        copyright(false); firstTime = true;
         if (!getByDataHook('search')) createSearchbar();
         if (!getByDataHook('url-room')) createURLButton();
         if (!getByDataHook('fil-cou')) createCountryButton();
@@ -241,43 +208,28 @@ function updateUI() {
         if (getByDataHook('count')) getByDataHook('count').remove();
         showControls(false);
     } else if (body.querySelector('.create-room-view')) {
-        copyright(true);
-        showControls(false);
+        copyright(true); showControls(false);
     } else if (body.querySelector('.settings-view')) {
         copyright(false);
-        if (inputOptionsHandler.getAttribute("hidden") != null) {
-            showControls(false);
-        }
+        if (inputOptionsHandler.getAttribute("hidden") != null) showControls(false);
         try {
             const videoSec = getByDataHook('videosec')
             if (videoSec.children.length == 10) {
-                videoSec.lastChild.remove();
-                videoSec.lastChild.remove();
-                videoSec.lastChild.remove();
+                videoSec.lastChild.remove(); videoSec.lastChild.remove(); videoSec.lastChild.remove();
             }
         } catch {}
         if (!getByDataHook('newinputbtn')) createInputButton();
         canResetJoystick = true;
     } else if (body.querySelector('.g-recaptcha-response')) {
-        copyright(false);
-        showControls(false);
-        resetJoystick();
-        canResetJoystick = true;
+        copyright(false); showControls(false); resetJoystick(); canResetJoystick = true;
     } else if (body.querySelector('.game-view') && !body.querySelector('.room-view')) {
         if (canResetJoystick) {
-            copyright(false);
-            showControls(true);
-            setupGameUI();
-            resetJoystick();
-            canResetJoystick = false;
+            copyright(false); showControls(true); setupGameUI(); resetJoystick(); canResetJoystick = false;
         }
     } else if (body.querySelector('.game-view') && !body.querySelector('.room-link-view')) {
-        copyright(false);
-        showControls(false);
+        copyright(false); showControls(false);
         if (!getByDataHook('store')) createStoreButton();
-        setupGameUI();
-        resetJoystick();
-        canResetJoystick = true;
+        setupGameUI(); resetJoystick(); canResetJoystick = true;
     } else if (body.querySelector('.room-link-view')) {
         showControls(false);
         if (!getByDataHook('share')) createShareButton();
@@ -287,59 +239,43 @@ function updateUI() {
 
 function createInputButton() {
     var el = getByDataHook('inputbtn');
+    if (!el) return;
     var elClone = el.cloneNode(true);
     elClone.setAttribute("data-hook", "newinputbtn")
     elClone.addEventListener("click", function() {
-        showControls(true);
-        inputOptionsHandler.removeAttribute("hidden")
-        resetJoystick();
+        showControls(true); inputOptionsHandler.removeAttribute("hidden"); resetJoystick();
     });
     el.parentNode.replaceChild(elClone, el);
 }
-
 function createShareButton() {
     let share = document.createElement("button");
     share.setAttribute("data-hook", "share");
     share.innerHTML = 'Share';
     insertAfter(getByDataHook('copy'), share);
-    share.addEventListener("click", function() {
-        console.log("SHARE_MESSAGE🎮⚽️ Join my Haxball Mobile room by copying and pasting the following link: " + getByDataHook('link').value)
-    });
+    share.addEventListener("click", function() { console.log("SHARE_MESSAGE🎮⚽️ Join my Haxball Mobile room by copying and pasting the following link: " + getByDataHook('link').value) });
 }
-
 function createStoreButton() {
     let store = document.createElement("button");
     store.setAttribute("data-hook", "store");
     store.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 407 407" fill="white" style="height:0.85em; width: auto"><path d="M402 84 323 5c-3-3-7-5-12-5H17C8 0 0 8 0 17v373c0 9 8 17 17 17h373c9 0 17-8 17-17V96c0-4-2-9-5-12zm-101 80H67V39h234v125z"></path><path d="M214 148h43c3 0 6-2 6-6V60c0-4-3-6-6-6h-43c-3 0-6 2-6 6v82c0 4 3 6 6 6z"></path></svg> Store';
     insertAfter(getByDataHook('rec-btn'), store);
-    store.addEventListener("click", function() {
-        prefabMessage("/store")
-    });
+    store.addEventListener("click", function() { prefabMessage("/store") });
 }
-
 function createSearchbar() {
     const inputContainer = document.createElement("div");
     inputContainer.className = "label-input";
     inputContainer.style.backgroundColor = "transparent";
-
     inputContainer.innerHTML = '<label>Search a room:</label><input data-hook="search" type="text">';
-
     const dialog = body.querySelector("div.dialog");
     const secondParagraph = dialog.querySelector("p:nth-child(2)");
-
     insertAfter(secondParagraph, inputContainer);
-
     secondParagraph.innerHTML = pickRandom(tips);
-
-    const input = inputContainer.querySelector('input');
-    input.addEventListener("input", searchRoomlist);
+    inputContainer.querySelector('input').addEventListener("input", searchRoomlist);
 }
-
 function createURLButton() {
     let button = document.createElement("button");
     button.setAttribute("data-hook", "url-room");
     button.innerHTML = '<i class="icon-link"></i><div>URL Room</div>';
-
     button.addEventListener("click", function() {
         if (!body.querySelector('[data-hook="input-url"]')) {
             let urlForm = document.createElement("form");
@@ -349,31 +285,24 @@ function createURLButton() {
             getByDataHook('search').parentNode.style.display = "none";
             getByDataHook('input-url').focus();
             getByDataHook('input-url').addEventListener('blur', function() {
-                getByDataHook('search').parentNode.style.display = "flex";
-                urlForm.remove()
+                getByDataHook('search').parentNode.style.display = "flex"; urlForm.remove()
             })
             urlForm.addEventListener('submit', function() { openHaxballURL(getByDataHook('input-url').value) })
         }
     });
     insertAfter(getByDataHook('join'), button)
 }
-
 function createAboutButton() {
     let button = document.createElement("button");
     button.setAttribute("data-hook", "aboutbtn");
     button.innerHTML = '<i class="icon-attention"></i><div>About us</div>';
-
-    button.addEventListener("click", function() {
-        aboutHandler.style.display = 'flex';
-    });
+    button.addEventListener("click", function() { aboutHandler.style.display = 'flex'; });
     insertAfter(body.querySelector(".buttons .spacer"), button)
 }
-
 function filterCountries(button) {
     const geoData = localStorage.getItem('geo_override') || localStorage.getItem('geo');
     if (geoData) {
-        const parsedData = JSON.parse(geoData);
-        const code = parsedData['code'];
+        const code = JSON.parse(geoData)['code'];
         const iconClass = button.lastChild.getAttribute("class");
         if (iconClass === "icon-cancel") {
             button.lastChild.setAttribute("class", "icon-ok");
@@ -385,7 +314,6 @@ function filterCountries(button) {
         getByDataHook('listscroll').scrollTop = 0;
     }
 }
-
 function createCountryButton() {
     let button = document.createElement("span");
     button.setAttribute("class", "bool");
@@ -395,10 +323,8 @@ function createCountryButton() {
     button.addEventListener("click", function() { filterCountries(button) });
     body.querySelector('.filters').prepend(button);
 }
-
 function setupGameUI() {
     const chat = body.querySelector('.chatbox-view');
-
     if (!getByDataHook('chat-toggle')) {
         const button = document.createElement("button");
         button.setAttribute("data-hook", "chat-toggle");
@@ -407,11 +333,9 @@ function setupGameUI() {
         button.addEventListener("click", chatToggle);
         body.querySelector('.sound-button-container').parentNode.prepend(button);
     }
-
     if (firstTime) {
         body.querySelector('.drag').remove();
-        const statsViewContainer = body.querySelector('.stats-view-container');
-        statsViewContainer.style.cssText = "display: none;";
+        body.querySelector('.stats-view-container').style.cssText = "display: none;";
         getByDataHook('log-contents').firstChild.remove();
         getByDataHook('menu').innerHTML = '<i class="icon-menu"></i>';
         const inputStyle = chat.querySelector('.input').style;
@@ -422,59 +346,35 @@ function setupGameUI() {
 }
 
 ///////////////////////////////////////// CHAT /////////////////////////////////////////
-
 function prefabMessage(msg) {
-    const chatbox = body.querySelector('.chatbox-view');
-    const input = chatbox.querySelector('input');
-    input.focus();
-    input.value = msg;
-
-    input.dispatchEvent(new KeyboardEvent("keydown", {
-        key: "Enter",
-        bubbles: true,
-        cancelable: true,
-        keyCode: 13,
-        which: 13,
-    }));
+    const input = body.querySelector('.chatbox-view').querySelector('input');
+    input.focus(); input.value = msg;
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, keyCode: 13, which: 13 }));
 }
-
 function updatedChat() {
     const log = getByDataHook('log');
+    if (!log || !log.firstChild) return;
     const children = log.firstChild.children;
-    const maxChildren = 5;
-
     if (lastMessage !== log.firstChild.lastChild) {
-        if (children.length > maxChildren) {
-            for (let i = 0; i < children.length - maxChildren; i++) {
-                children[i].style.display = "none";
-            }
+        if (children.length > 5) {
+            for (let i = 0; i < children.length - 5; i++) children[i].style.display = "none";
         }
-
         const lastChild = log.firstChild.lastChild;
         lastChild.style.opacity = 1;
-        setTimeout(() => {
-            lastChild.classList.add("fade-out");
-            lastChild.removeAttribute("style");
-        }, 500);
+        setTimeout(() => { lastChild.classList.add("fade-out"); lastChild.removeAttribute("style"); }, 500);
         lastMessage = lastChild;
     }
     log.scrollTop = 0;
 }
-
 function chatToggle() {
-    const chat = body.querySelector('.chatbox-view');
-    const inputStyle = chat.querySelector('.input').style;
-
+    const inputStyle = body.querySelector('.chatbox-view').querySelector('.input').style;
     inputStyle.display = inputStyle.display === 'none' ? 'block' : 'none';
-    if (inputStyle.display == 'block') {
-        chat.querySelector('input').focus();
-    }
+    if (inputStyle.display == 'block') body.querySelector('.chatbox-view').querySelector('input').focus();
 }
 
 ///////////////////////////////////////// CONTROLS /////////////////////////////////////////
-
 function showControls(v) {
-    if (v) {
+    if(v) {
         joystick.setAttribute("view", "visible");
         kickButton.setAttribute("view", "visible");
     } else {
@@ -482,7 +382,6 @@ function showControls(v) {
         kickButton.setAttribute("view", "hidden");
     }
 }
-
 function updateControlsSettingsNumbers() {
     let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
     if (!inputs || inputs.length < 3) return;
@@ -490,116 +389,69 @@ function updateControlsSettingsNumbers() {
     inputs[1].children[1].innerHTML = inputs[1].children[2].value;
     inputs[2].children[1].innerHTML = inputs[2].children[2].value;
 }
-
 function onControlsSettingsInput() {
     let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
     if (!inputs || inputs.length < 3) return;
     updateControlsOptions(inputs[0].children[2].value, inputs[1].children[2].value, inputs[2].children[2].value);
 }
-
 function getColors() {
-    try {
-        return Object.assign({}, DEFAULT_COLORS, JSON.parse(localStorage.getItem("controls_colors") || "{}"));
-    } catch { return {...DEFAULT_COLORS}; }
+    try { return Object.assign({}, DEFAULT_COLORS, JSON.parse(localStorage.getItem("controls_colors") || "{}")); } 
+    catch { return {...DEFAULT_COLORS}; }
 }
-
 function applyColors(c) {
     localStorage.setItem("controls_colors", JSON.stringify(c));
     const opts = JSON.parse(localStorage.getItem("controls")) || [20, 5, 1];
     updateControlsOptions(opts[0], opts[1], opts[2], true, c);
 }
-
 function updateControlsOptions(w, m, o, f = false, colors = null) {
     if (f) {
         let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
         if (inputs && inputs.length >= 3) {
-            inputs[0].children[2].value = w;
-            inputs[1].children[2].value = m;
-            inputs[2].children[2].value = o;
+            inputs[0].children[2].value = w; inputs[1].children[2].value = m; inputs[2].children[2].value = o;
         }
     }
     localStorage.setItem("controls", JSON.stringify([w, m, o]));
-
     const c = colors || getColors();
     controlsHandler.innerHTML = constrolsStyleBase
-        .replace(/CONTROLS_WIDTH/g,  w.toString())
-        .replace(/CONTROLS_MARGIN/g, m.toString())
-        .replace(/CONTROLS_OPACITY/g, o.toString())
-        .replace(/KICK_OPACITY/g,   (o / 2).toString())
-        .replace(/JOY_BG/g,      c.joyBg)
-        .replace(/JOY_BORDER/g,  c.joyBorder)
-        .replace(/THUMB_BG/g,    c.thumbBg)
-        .replace(/THUMB_BORDER/g,c.thumbBorder)
-        .replace(/KICK_BG/g,     c.kickBg)
-        .replace(/KICK_BORDER/g, c.kickBorder)
-        .replace(/KICK_ICON/g,   c.kickIcon);
-
-    updateControlsSettingsNumbers();
-    resetJoystick();
+        .replaceAll("CONTROLS_WIDTH", w.toString()).replaceAll("CONTROLS_MARGIN", m.toString())
+        .replaceAll("CONTROLS_OPACITY", o.toString()).replaceAll("KICK_OPACITY", (o / 2).toString())
+        .replaceAll("JOY_BG", c.joyBg).replaceAll("JOY_BORDER", c.joyBorder)
+        .replaceAll("THUMB_BG", c.thumbBg).replaceAll("THUMB_BORDER", c.thumbBorder)
+        .replaceAll("KICK_BG", c.kickBg).replaceAll("KICK_BORDER", c.kickBorder)
+        .replaceAll("KICK_ICON", c.kickIcon);
+    updateControlsSettingsNumbers(); resetJoystick();
 }
-
-function handleTouchStart(e) {
-    isTouching = true;
-    updateJoystick(e.touches[0]);
-}
-
-function handleTouchMove(e) {
-    if (isTouching) {
-        updateJoystick(e.touches[0]);
-    }
-}
-
-function handleTouchEnd() {
-    isTouching = false;
-    resetJoystick();
-}
-
+function handleTouchStart(e) { isTouching = true; updateJoystick(e.touches[0]); }
+function handleTouchMove(e) { if (isTouching) updateJoystick(e.touches[0]); }
+function handleTouchEnd() { isTouching = false; resetJoystick(); }
 function updateJoystick(touch) {
     const rect = joystick.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
     const deltaX = touch.clientX - centerX;
     const deltaY = touch.clientY - centerY;
-
     const angle = Math.atan2(deltaY, deltaX);
     const distance = Math.min(joystick.clientWidth / 2, Math.hypot(deltaX, deltaY));
-
     const thumbX = centerX + distance * Math.cos(angle);
     const thumbY = centerY + distance * Math.sin(angle);
-
     thumb.style.left = thumbX - rect.left - thumb.clientWidth / 2 + 'px';
     thumb.style.top = thumbY - rect.top - thumb.clientHeight / 2 + 'px';
-
-    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
-    const angleInDegrees = (normalizedAngle * 180) / Math.PI;
-    const joystickValue = Math.round(angleInDegrees / 45) % 8;
-
+    const joystickValue = Math.round(((angle + 2 * Math.PI) % (2 * Math.PI) * 180 / Math.PI) / 45) % 8;
     switch (joystickValue) {
-        case 0: emulateKeys("d"); break;
-        case 1: emulateKeys("sd"); break;
-        case 2: emulateKeys("s"); break;
-        case 3: emulateKeys("sa"); break;
-        case 4: emulateKeys("a"); break;
-        case 5: emulateKeys("wa"); break;
-        case 6: emulateKeys("w"); break;
-        case 7: emulateKeys("wd"); break;
-        default:
+        case 0: emulateKeys("d"); break; case 1: emulateKeys("sd"); break;
+        case 2: emulateKeys("s"); break; case 3: emulateKeys("sa"); break;
+        case 4: emulateKeys("a"); break; case 5: emulateKeys("wa"); break;
+        case 6: emulateKeys("w"); break; case 7: emulateKeys("wd"); break;
     }
 }
-
 function resetJoystick() {
     thumb.style.left = joystick.clientWidth / 2 - thumb.clientWidth / 2 + 'px';
     thumb.style.top = joystick.clientHeight / 2 - thumb.clientHeight / 2 + 'px';
-    emulateKeys("")
+    emulateKeys("");
 }
-
 function emulateKeys(str) {
-    let keys = { "w": "keyup", "a": "keyup", "s": "keyup", "d": "keyup" }
-    for (var i = 0; i < str.length; i++) {
-        var char = str[i];
-        keys[char] = "keydown";
-    }
+    let keys = { "w": "keyup", "a": "keyup", "s": "keyup", "d": "keyup" };
+    for (var i = 0; i < str.length; i++) keys[str[i]] = "keydown";
     try {
         gameFrame.document.dispatchEvent(new KeyboardEvent(keys['w'], { code: "KeyW" }));
         gameFrame.document.dispatchEvent(new KeyboardEvent(keys['a'], { code: "KeyA" }));
@@ -607,39 +459,38 @@ function emulateKeys(str) {
         gameFrame.document.dispatchEvent(new KeyboardEvent(keys['d'], { code: "KeyD" }));
     } catch {}
 }
-
-function kick(str) {
-    try {
-        gameFrame.document.dispatchEvent(new KeyboardEvent(str, { code: "KeyX" }));
-    } catch {}
-}
+function kick(str) { try { gameFrame.document.dispatchEvent(new KeyboardEvent(str, { code: "KeyX" })); } catch {} }
 
 function buildSettingsHTML() {
     let colorRows = "";
     for (const key in COLOR_LABELS) {
-        colorRows += `<div class="option-row"><div style="margin-right:10px;flex:1;min-width:90px">${COLOR_LABELS[key]}</div><input type="color" data-color="${key}"></div>`;
+        colorRows += `
+        <div style="margin-bottom: 12px; background: #2a343a; padding: 10px; border-radius: 8px;">
+            <div style="margin-bottom: 8px; color: white; font-weight: bold; font-size: 14px;">${COLOR_LABELS[key]}</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" data-color-group="${key}">
+                ${PRESET_COLORS.map(color => `<div class="color-box" data-color="${color}" style="width:35px; height:35px; border-radius:50%; background-color:${color}; border: 2px solid #555; cursor: pointer; box-sizing:border-box;"></div>`).join('')}
+            </div>
+        </div>`;
     }
-
     return `
-<div class="dialog settings-view" style="height:min-content">
-  <h1>Controls</h1>
-  <button data-hook="closeinput" style="position:absolute;top:12px;right:10px">Back</button>
+<div class="dialog settings-view" style="height:min-content; padding-bottom: 40px; max-height: 90vh; overflow-y: auto;">
+  <h1 style="margin-bottom: 20px;">Cài đặt Phím & Màu</h1>
+  <button data-hook="closeinput" style="position:absolute;top:12px;right:10px; background: #333; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold;">Đóng</button>
 
   <div class="tabcontents">
     <div class="section selected">
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Size</div><div style="width:45px">0</div><input class="slider" type="range" min="10" max="30" step="0.01"></div>
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Margin</div><div style="width:45px">0</div><input class="slider" type="range" min="0" max="15" step="0.01"></div>
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Opacity</div><div style="width:45px">0</div><input class="slider" type="range" min="0.2" max="1" step="0.01"></div>
+      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Kích thước</div><div style="width:45px">0</div><input class="slider" type="range" min="10" max="30" step="0.01"></div>
+      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Khoảng cách</div><div style="width:45px">0</div><input class="slider" type="range" min="0" max="15" step="0.01"></div>
+      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Độ mờ</div><div style="width:45px">0</div><input class="slider" type="range" min="0.2" max="1" step="0.01"></div>
       <br>
-      <button data-hook="resetinput">Reset</button>
+      <button data-hook="resetinput" style="background: #555; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Reset Kích Thước</button>
     </div>
-
-    <div class="section" data-hook="color-section">
-      <h2 style="margin:8px 0">Colors</h2>
+    <div class="section" data-hook="color-section" style="margin-top: 20px;">
+      <h2 style="margin:15px 0; color: white; text-align:center;">Bảng Chọn Màu</h2>
       ${colorRows}
       <br>
-      <button data-hook="resetcolors">Reset colors</button>
-      <button data-hook="hidepanel" style="margin-left:8px">Ẩn bảng</button>
+      <button data-hook="resetcolors" style="background: #c13535; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
+      <button data-hook="hidepanel" style="background: #2196f3; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Ẩn Bảng</button>
     </div>
   </div>
 </div>`;
@@ -648,73 +499,63 @@ function buildSettingsHTML() {
 function setupControls() {
     controlsHandler.name = "stylesheet";
     document.head.appendChild(controlsHandler);
-
     inputOptionsHandler.setAttribute("class", "input-options");
-    inputOptionsHandler.setAttribute("hidden", "")
+    inputOptionsHandler.setAttribute("hidden", "");
     inputOptionsHandler.innerHTML = buildSettingsHTML();
     body.parentNode.appendChild(inputOptionsHandler);
 
-    // --- Close / Reset ---
     body.parentNode.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
-        inputOptionsHandler.setAttribute("hidden", "");
-        showControls(false);
+        inputOptionsHandler.setAttribute("hidden", ""); showControls(false);
     });
     body.parentNode.querySelector('[data-hook="resetinput"]').addEventListener("click", function() {
-        updateControlsOptions(20, 5, 1, true)
+        updateControlsOptions(20, 5, 1, true);
     });
 
-    // --- Sliders ---
     const sectionRows = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
-    sectionRows[0].children[2].addEventListener("input", onControlsSettingsInput);
-    sectionRows[1].children[2].addEventListener("input", onControlsSettingsInput);
-    sectionRows[2].children[2].addEventListener("input", onControlsSettingsInput);
+    if(sectionRows.length >= 3) {
+        sectionRows[0].children[2].addEventListener("input", onControlsSettingsInput);
+        sectionRows[1].children[2].addEventListener("input", onControlsSettingsInput);
+        sectionRows[2].children[2].addEventListener("input", onControlsSettingsInput);
+    }
 
-    // --- Color inputs ---
-    const c = getColors();
-    inputOptionsHandler.querySelectorAll('input[type="color"]').forEach(inp => {
-        inp.value = c[inp.dataset.color];
-        inp.addEventListener("input", () => {
-            const colors = getColors();
-            colors[inp.dataset.color] = inp.value;
-            applyColors(colors);
+    // Xử lý click vào các ô vuông màu
+    inputOptionsHandler.querySelectorAll('.color-box').forEach(box => {
+        box.addEventListener("click", (e) => {
+            const color = e.target.getAttribute("data-color");
+            const groupKey = e.target.parentNode.getAttribute("data-color-group");
+            const currentColors = getColors();
+            currentColors[groupKey] = color;
+            applyColors(currentColors);
+            
+            // Hiệu ứng viền khi được chọn
+            inputOptionsHandler.querySelectorAll(`[data-color-group="${groupKey}"] .color-box`).forEach(b => b.style.border = "2px solid #555");
+            e.target.style.border = "3px solid white";
         });
     });
 
-    // --- Reset colors ---
-    inputOptionsHandler.querySelector('[data-hook="resetcolors"]').addEventListener("click", () => {
+    body.parentNode.querySelector('[data-hook="resetcolors"]').addEventListener("click", () => {
         applyColors({...DEFAULT_COLORS});
-        inputOptionsHandler.querySelectorAll('input[type="color"]').forEach(inp => {
-            inp.value = DEFAULT_COLORS[inp.dataset.color];
-        });
+        inputOptionsHandler.querySelectorAll('.color-box').forEach(b => b.style.border = "2px solid #555");
+    });
+    body.parentNode.querySelector('[data-hook="hidepanel"]').addEventListener("click", () => {
+        inputOptionsHandler.setAttribute("hidden", ""); showControls(false);
     });
 
-    // --- Hide panel ---
-    inputOptionsHandler.querySelector('[data-hook="hidepanel"]').addEventListener("click", () => {
-        inputOptionsHandler.setAttribute("hidden", "");
-        showControls(false);
-    });
-
-    // --- Floating open button ---
     floatingBtn = document.createElement("button");
     floatingBtn.id = "open-panel-btn";
     floatingBtn.textContent = "⚙";
-    floatingBtn.style.cssText = "position:fixed;top:10px;right:10px;z-index:200;width:40px;height:40px;border-radius:50%;background:#1a2125cc;color:#ecf0f3;border:1px solid #ecf0f355;font-size:20px;display:none;align-items:center;justify-content:center;padding:0;line-height:1";
+    floatingBtn.style.cssText = "position:fixed;top:15px;right:15px;z-index:200;width:50px;height:50px;border-radius:50%;background:#1a2125cc;color:#ecf0f3;border:1px solid #ecf0f355;font-size:24px;display:none;align-items:center;justify-content:center;padding:0;line-height:1;box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
     floatingBtn.addEventListener("click", () => {
-        inputOptionsHandler.removeAttribute("hidden");
-        showControls(true);
-        resetJoystick();
+        inputOptionsHandler.removeAttribute("hidden"); showControls(true); resetJoystick();
     });
     document.body.appendChild(floatingBtn);
 
-    // Sync floating button visibility with panel
     const panelObserver = new MutationObserver(() => {
         floatingBtn.style.display = inputOptionsHandler.hasAttribute("hidden") ? "flex" : "none";
     });
     panelObserver.observe(inputOptionsHandler, { attributes: true, attributeFilter: ["hidden"] });
-    // initial state
     floatingBtn.style.display = inputOptionsHandler.hasAttribute("hidden") ? "flex" : "none";
 
-    // --- Joystick & Kick ---
     joystick = document.createElement("div");
     joystick.setAttribute("class", "neo rounded sizer");
     joystick.setAttribute("view", "hidden");
@@ -738,89 +579,50 @@ function setupControls() {
     document.body.appendChild(kickButton);
 
     const controlOptions = JSON.parse(localStorage.getItem("controls"));
-    if (controlOptions === null) {
-        updateControlsOptions(20, 5, 1, true)
-    } else {
-        updateControlsOptions(controlOptions[0], controlOptions[1], controlOptions[2], true)
-    }
-
+    if (controlOptions === null) updateControlsOptions(20, 5, 1, true);
+    else updateControlsOptions(controlOptions[0], controlOptions[1], controlOptions[2], true);
     resetJoystick();
 }
 
 ///////////////////////////////////////// GAMEPAD /////////////////////////////////////////
-
 let previousDigitalStickState = "";
 let previousAnalogStickState = "";
 let isXButtonPressed = false;
 
-window.addEventListener("gamepadconnected", (event) => {
-  console.log("Gamepad connected:", event.gamepad);
-  checkGamepadState(event.gamepad);
-});
-
-window.addEventListener("gamepaddisconnected", (event) => {
-  console.log("Gamepad disconnected:", event.gamepad);
-});
+window.addEventListener("gamepadconnected", (event) => { checkGamepadState(event.gamepad); });
+window.addEventListener("gamepaddisconnected", (event) => {});
 
 function checkGamepadState(gamepad) {
   requestAnimationFrame(() => {
-    const axes = gamepad.axes;
-    const buttons = gamepad.buttons;
-
+    const axes = gamepad.axes; const buttons = gamepad.buttons;
     const digitalStickState = getDigitalStickState(axes[0], axes[1]);
-    if (digitalStickState.changed) {
-      emulateKeys(digitalStickState.direction);
-      previousDigitalStickState = digitalStickState.direction;
-    }
-
+    if (digitalStickState.changed) { emulateKeys(digitalStickState.direction); previousDigitalStickState = digitalStickState.direction; }
     const analogStickState = getAnalogStickState(axes[2], axes[3]);
-    if (analogStickState.changed) {
-      emulateKeys(analogStickState.direction);
-      previousAnalogStickState = analogStickState.direction;
-    }
-
-    if ((buttons[0].pressed || buttons[2].pressed) && !isXButtonPressed) {
-      kick("keydown");
-      isXButtonPressed = true;
-    } else if (!buttons[0].pressed && !buttons[2].pressed) {
-      kick("keyup");
-      isXButtonPressed = false;
-    }
-
+    if (analogStickState.changed) { emulateKeys(analogStickState.direction); previousAnalogStickState = analogStickState.direction; }
+    if ((buttons[0].pressed || buttons[2].pressed) && !isXButtonPressed) { kick("keydown"); isXButtonPressed = true; } 
+    else if (!buttons[0].pressed && !buttons[2].pressed) { kick("keyup"); isXButtonPressed = false; }
     checkGamepadState(navigator.getGamepads()[gamepad.index]);
   });
 }
-
 function getDigitalStickState(x, y) {
-  const threshold = 0.5;
-  const centerThreshold = 0.1;
-  if (Math.abs(x) < centerThreshold && Math.abs(y) < centerThreshold) {
-    return { changed: previousDigitalStickState !== "Center", direction: "Center" };
-  }
+  const threshold = 0.5; const centerThreshold = 0.1;
+  if (Math.abs(x) < centerThreshold && Math.abs(y) < centerThreshold) return { changed: previousDigitalStickState !== "Center", direction: "Center" };
   if (Math.abs(x) > threshold || Math.abs(y) > threshold) {
-    const direction = getDirection(x, y);
-    return { changed: direction !== previousDigitalStickState, direction };
+    const direction = getDirection(x, y); return { changed: direction !== previousDigitalStickState, direction };
   }
   return { changed: false };
 }
-
 function getAnalogStickState(x, y) {
-  const threshold = 0.5;
-  const centerThreshold = 0.1;
-  if (Math.abs(x) < centerThreshold && Math.abs(y) < centerThreshold) {
-    return { changed: previousAnalogStickState !== "Center", direction: "Center" };
-  }
+  const threshold = 0.5; const centerThreshold = 0.1;
+  if (Math.abs(x) < centerThreshold && Math.abs(y) < centerThreshold) return { changed: previousAnalogStickState !== "Center", direction: "Center" };
   if (Math.abs(x) > threshold || Math.abs(y) > threshold) {
-    const direction = getDirection(x, y);
-    return { changed: direction !== previousAnalogStickState, direction };
+    const direction = getDirection(x, y); return { changed: direction !== previousAnalogStickState, direction };
   }
   return { changed: false };
 }
-
 function getDirection(x, y) {
   const angle = Math.atan2(y, x);
   const angleInDegrees = (angle >= 0 ? angle : (2 * Math.PI + angle)) * (180 / Math.PI);
   const sector = Math.round(angleInDegrees / 45) % 8;
-  const directions = ["d", "sd", "s", "sa", "a", "aw", "w", "wd"];
-  return directions[sector];
+  return ["d", "sd", "s", "sa", "a", "aw", "w", "wd"][sector];
 }
