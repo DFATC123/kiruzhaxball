@@ -189,7 +189,7 @@ function setupCountryFilter() {
 function setupCopyright() {
     copyrightHandler.setAttribute("data-hook", "copyright");
     copyrightHandler.setAttribute("style", "text-align:center;position:absolute;bottom:15px;width:100%; display: block; z-index: 10;");
-    copyrightHandler.innerHTML = '2024 Kiruz Mod. Original game by Mario Carbajal (@basro)';
+    copyrightHandler.innerHTML = '2026 Kiruz Mod. Original game by Mario Carbajal (@basro)';
     document.body.appendChild(copyrightHandler);
 }
 function copyright(s) { copyrightHandler.style.display = s ? "block" : "none"; }
@@ -382,14 +382,14 @@ function showControls(v) {
     }
 }
 function updateControlsSettingsNumbers() {
-    let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
+    let inputs = inputOptionsHandler.querySelectorAll(".my-custom-row");
     if (!inputs || inputs.length < 3) return;
     inputs[0].children[1].innerHTML = inputs[0].children[2].value;
     inputs[1].children[1].innerHTML = inputs[1].children[2].value;
     inputs[2].children[1].innerHTML = inputs[2].children[2].value;
 }
 function onControlsSettingsInput() {
-    let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
+    let inputs = inputOptionsHandler.querySelectorAll(".my-custom-row");
     if (!inputs || inputs.length < 3) return;
     updateControlsOptions(inputs[0].children[2].value, inputs[1].children[2].value, inputs[2].children[2].value);
 }
@@ -404,7 +404,7 @@ function applyColors(c) {
 }
 function updateControlsOptions(w, m, o, f = false, colors = null) {
     if (f) {
-        let inputs = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
+        let inputs = inputOptionsHandler.querySelectorAll(".my-custom-row");
         if (inputs && inputs.length >= 3) {
             inputs[0].children[2].value = w; inputs[1].children[2].value = m; inputs[2].children[2].value = o;
         }
@@ -460,8 +460,14 @@ function emulateKeys(str) {
 }
 function kick(str) { try { gameFrame.document.dispatchEvent(new KeyboardEvent(str, { code: "KeyX" })); } catch {} }
 
-// BẢNG SETTINGS ĐÃ ĐƯỢC CẢI TIẾN GIAO DIỆN ĐỂ CUỘN MƯỢT
-function buildSettingsHTML() {
+function setupControls() {
+    controlsHandler.name = "stylesheet";
+    document.head.appendChild(controlsHandler);
+
+    // Tạo bảng Setting bằng mã nhà làm, không dùng class của Haxball
+    inputOptionsHandler.id = "kiruz-settings-menu";
+    inputOptionsHandler.setAttribute("hidden", "");
+    
     let colorRows = "";
     for (const key in COLOR_LABELS) {
         colorRows += `
@@ -472,61 +478,79 @@ function buildSettingsHTML() {
             </div>
         </div>`;
     }
-    return `
-<div class="dialog settings-view" style="height:85vh !important; max-height:85vh !important; overflow-y:auto !important; display:block !important; padding-bottom: 40px; margin-top: 5vh; background: #1a2125;">
-  <div style="position: sticky; top: 0; background: #1a2125; z-index: 10; padding-bottom: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-    <h1 style="margin: 0; font-size: 1.5rem; text-align: left;">Cài đặt</h1>
-    <button data-hook="closeinput" style="background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold;">Đóng</button>
-  </div>
 
-  <div class="tabcontents">
-    <div class="section selected">
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Kích thước</div><div style="width:45px">0</div><input class="slider" type="range" min="10" max="30" step="0.01"></div>
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Khoảng cách</div><div style="width:45px">0</div><input class="slider" type="range" min="0" max="15" step="0.01"></div>
-      <div class="option-row"><div style="margin-right:10px;flex:1;min-width:60px">Độ mờ</div><div style="width:45px">0</div><input class="slider" type="range" min="0.2" max="1" step="0.01"></div>
-      <br>
-      <button data-hook="resetinput" style="background: #555; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Reset Kích Thước</button>
-    </div>
-    
-    <div class="section" data-hook="color-section" style="margin-top: 20px;">
-      <h2 style="margin:15px 0; color: white; text-align:center;">Bảng Chọn Màu</h2>
-      ${colorRows}
-      <br>
-      <button data-hook="resetcolors" style="background: #ff9800; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
-      <button data-hook="hidepanel" style="background: #2196f3; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Ẩn Bảng</button>
-    </div>
-  </div>
-</div>`;
-}
+    inputOptionsHandler.innerHTML = `
+    <style>
+        #kiruz-settings-menu {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(26, 33, 37, 0.95); z-index: 9999;
+            overflow-y: auto; display: flex; flex-direction: column; align-items: center;
+            color: white; font-family: sans-serif;
+        }
+        #kiruz-settings-menu[hidden] { display: none !important; }
+        .kiruz-container {
+            width: 95%; max-width: 500px; padding: 20px; margin-top: 20px; margin-bottom: 50px;
+            background: #1a2125; border-radius: 10px; border: 1px solid #333;
+        }
+        .my-custom-row { display: flex; align-items: center; margin-bottom: 15px; background: #222; padding: 10px; border-radius: 5px; }
+        .my-custom-row input[type=range] { flex: 1; margin-left: 10px; }
+        .my-custom-row div:first-child { min-width: 80px; font-weight: bold; }
+        .my-custom-row div:nth-child(2) { width: 40px; text-align: right; margin-right: 10px; }
+    </style>
+    <div class="kiruz-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">
+            <h2 style="margin: 0; font-size: 1.5rem;">Cài Đặt</h2>
+            <button data-hook="closeinput" style="background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold; font-size: 1rem;">Đóng</button>
+        </div>
+        
+        <div class="my-custom-row">
+            <div>Kích thước</div><div>20</div><input class="slider" type="range" min="10" max="30" step="0.01">
+        </div>
+        <div class="my-custom-row">
+            <div>Khoảng cách</div><div>5</div><input class="slider" type="range" min="0" max="15" step="0.01">
+        </div>
+        <div class="my-custom-row">
+            <div>Độ mờ</div><div>1</div><input class="slider" type="range" min="0.2" max="1" step="0.01">
+        </div>
+        
+        <button data-hook="resetinput" style="background: #555; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; font-weight:bold; margin-bottom: 20px;">Reset Kích Thước</button>
 
-function setupControls() {
-    controlsHandler.name = "stylesheet";
-    document.head.appendChild(controlsHandler);
-    inputOptionsHandler.setAttribute("class", "input-options");
-    inputOptionsHandler.setAttribute("hidden", "");
-    inputOptionsHandler.innerHTML = buildSettingsHTML();
-    
-    // Cực kỳ quan trọng: Ép khung cha phải cuộn được và trong suốt
-    inputOptionsHandler.style.overflowY = "auto";
-    inputOptionsHandler.style.background = "transparent";
+        <h2 style="text-align: center; margin-bottom: 15px;">Màu Sắc</h2>
+        ${colorRows}
+        
+        <button data-hook="resetcolors" style="background: #ff9800; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
+    </div>
+    `;
     
     body.parentNode.appendChild(inputOptionsHandler);
 
-    body.parentNode.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
+    // Nút bánh răng lơ lửng (Nút R)
+    floatingBtn = document.createElement("button");
+    floatingBtn.id = "open-panel-btn";
+    floatingBtn.innerHTML = "⚙";
+    floatingBtn.style.cssText = "position:fixed;top:15px;right:15px;z-index:8888;width:55px;height:55px;border-radius:50%;background:#1a2125cc;color:#ecf0f3;border:2px solid #ecf0f3;font-size:28px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;box-shadow: 0 4px 6px rgba(0,0,0,0.5);";
+    floatingBtn.addEventListener("click", () => {
+        inputOptionsHandler.removeAttribute("hidden"); showControls(true); resetJoystick();
+    });
+    document.body.appendChild(floatingBtn);
+
+    // Event bấm nút Đóng
+    inputOptionsHandler.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
         inputOptionsHandler.setAttribute("hidden", ""); showControls(false);
     });
-    body.parentNode.querySelector('[data-hook="resetinput"]').addEventListener("click", function() {
+    
+    // Event Slider
+    inputOptionsHandler.querySelector('[data-hook="resetinput"]').addEventListener("click", function() {
         updateControlsOptions(20, 5, 1, true);
     });
-
-    const sectionRows = inputOptionsHandler.querySelectorAll(".section.selected .option-row");
+    const sectionRows = inputOptionsHandler.querySelectorAll(".my-custom-row");
     if(sectionRows.length >= 3) {
         sectionRows[0].children[2].addEventListener("input", onControlsSettingsInput);
         sectionRows[1].children[2].addEventListener("input", onControlsSettingsInput);
         sectionRows[2].children[2].addEventListener("input", onControlsSettingsInput);
     }
 
-    // Xử lý click vào các ô vuông màu
+    // Event bấm chọn màu
     inputOptionsHandler.querySelectorAll('.color-box').forEach(box => {
         box.addEventListener("click", (e) => {
             const color = e.target.getAttribute("data-color");
@@ -535,35 +559,17 @@ function setupControls() {
             currentColors[groupKey] = color;
             applyColors(currentColors);
             
-            // Hiệu ứng viền khi được chọn
             inputOptionsHandler.querySelectorAll(`[data-color-group="${groupKey}"] .color-box`).forEach(b => b.style.border = "2px solid #555");
-            e.target.style.border = "3px solid white";
+            e.target.style.border = "4px solid white";
         });
     });
 
-    body.parentNode.querySelector('[data-hook="resetcolors"]').addEventListener("click", () => {
+    inputOptionsHandler.querySelector('[data-hook="resetcolors"]').addEventListener("click", () => {
         applyColors({...DEFAULT_COLORS});
         inputOptionsHandler.querySelectorAll('.color-box').forEach(b => b.style.border = "2px solid #555");
     });
-    body.parentNode.querySelector('[data-hook="hidepanel"]').addEventListener("click", () => {
-        inputOptionsHandler.setAttribute("hidden", ""); showControls(false);
-    });
 
-    floatingBtn = document.createElement("button");
-    floatingBtn.id = "open-panel-btn";
-    floatingBtn.textContent = "⚙";
-    floatingBtn.style.cssText = "position:fixed;top:15px;right:15px;z-index:200;width:50px;height:50px;border-radius:50%;background:#1a2125cc;color:#ecf0f3;border:1px solid #ecf0f355;font-size:24px;display:none;align-items:center;justify-content:center;padding:0;line-height:1;box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
-    floatingBtn.addEventListener("click", () => {
-        inputOptionsHandler.removeAttribute("hidden"); showControls(true); resetJoystick();
-    });
-    document.body.appendChild(floatingBtn);
-
-    const panelObserver = new MutationObserver(() => {
-        floatingBtn.style.display = inputOptionsHandler.hasAttribute("hidden") ? "flex" : "none";
-    });
-    panelObserver.observe(inputOptionsHandler, { attributes: true, attributeFilter: ["hidden"] });
-    floatingBtn.style.display = inputOptionsHandler.hasAttribute("hidden") ? "flex" : "none";
-
+    // Joystick & Kick
     joystick = document.createElement("div");
     joystick.setAttribute("class", "neo rounded sizer");
     joystick.setAttribute("view", "hidden");
