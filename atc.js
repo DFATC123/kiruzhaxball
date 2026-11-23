@@ -149,7 +149,7 @@ function init() {
     gameFrame.head.innerHTML += "<style>button{display: }</style>";
     aboutHandler.setAttribute('data-hook', 'about');
     aboutHandler.style.cssText = 'background: #1a2125; position: absolute; width: 100%; height: 100%; display: none; justify-content: center; flex-direction: column; align-items: center; margin: 0; z-index: 999;';
-    aboutHandler.innerHTML = '<div class="dialog basic-dialog" style="max-width: 80%;"><h1>About us</h1><p>We are Vixel Dev, a small development studio that wants the Haxball community to grow, without hurting its owners. We do not monetize this application, as it is free and contains no ads. </p><p>We want to thank @basro for creating this game, and we hope not to disturb with this port. </p><p></p><p>To contact us:</p><p>E-mail: vixeldev@gmail.com</p><p>Instragram: @haxballmobile</p><div class="buttons"><button data-hook="closeabout">Close</button></div></div>';
+    aboutHandler.innerHTML = '<div class="dialog basic-dialog" style="max-width: 80%;"><h1>About</h1><p>Bản Mod bởi Kiruz.</p><p>Gốc được phát triển bởi Vixel Dev và Mario Carbajal (@basro).</p><div class="buttons"><button data-hook="closeabout">Close</button></div></div>';
 
     body.parentNode.appendChild(aboutHandler);
     if (localStorage.getItem("firstTime") === null) {
@@ -189,7 +189,7 @@ function setupCountryFilter() {
 function setupCopyright() {
     copyrightHandler.setAttribute("data-hook", "copyright");
     copyrightHandler.setAttribute("style", "text-align:center;position:absolute;bottom:15px;width:100%; display: block; z-index: 10;");
-    copyrightHandler.innerHTML = '2024 Vixel Dev. Original game by Mario Carbajal (@basro)';
+    copyrightHandler.innerHTML = '2024 Kiruz Mod. Original game by Mario Carbajal (@basro)';
     document.body.appendChild(copyrightHandler);
 }
 function copyright(s) { copyrightHandler.style.display = s ? "block" : "none"; }
@@ -460,6 +460,7 @@ function emulateKeys(str) {
 }
 function kick(str) { try { gameFrame.document.dispatchEvent(new KeyboardEvent(str, { code: "KeyX" })); } catch {} }
 
+// BẢNG SETTINGS ĐÃ ĐƯỢC CẢI TIẾN GIAO DIỆN ĐỂ CUỘN MƯỢT
 function buildSettingsHTML() {
     let colorRows = "";
     for (const key in COLOR_LABELS) {
@@ -472,9 +473,11 @@ function buildSettingsHTML() {
         </div>`;
     }
     return `
-<div class="dialog settings-view" style="height:85vh !important; max-height:85vh !important; overflow-y:auto !important; display:block !important; padding-bottom: 40px; margin-top: 5vh;">
-  <h1 style="margin-bottom: 20px;">Cài đặt Phím & Màu</h1>
-  <button data-hook="closeinput" style="position:absolute;top:12px;right:12px; background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold; z-index: 99;">Đóng</button>
+<div class="dialog settings-view" style="height:85vh !important; max-height:85vh !important; overflow-y:auto !important; display:block !important; padding-bottom: 40px; margin-top: 5vh; background: #1a2125;">
+  <div style="position: sticky; top: 0; background: #1a2125; z-index: 10; padding-bottom: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <h1 style="margin: 0; font-size: 1.5rem; text-align: left;">Cài đặt</h1>
+    <button data-hook="closeinput" style="background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold;">Đóng</button>
+  </div>
 
   <div class="tabcontents">
     <div class="section selected">
@@ -484,6 +487,7 @@ function buildSettingsHTML() {
       <br>
       <button data-hook="resetinput" style="background: #555; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Reset Kích Thước</button>
     </div>
+    
     <div class="section" data-hook="color-section" style="margin-top: 20px;">
       <h2 style="margin:15px 0; color: white; text-align:center;">Bảng Chọn Màu</h2>
       ${colorRows}
@@ -501,8 +505,11 @@ function setupControls() {
     inputOptionsHandler.setAttribute("class", "input-options");
     inputOptionsHandler.setAttribute("hidden", "");
     inputOptionsHandler.innerHTML = buildSettingsHTML();
-    // Ép thẻ cha bên ngoài cũng phải cho phép cuộn
+    
+    // Cực kỳ quan trọng: Ép khung cha phải cuộn được và trong suốt
     inputOptionsHandler.style.overflowY = "auto";
+    inputOptionsHandler.style.background = "transparent";
+    
     body.parentNode.appendChild(inputOptionsHandler);
 
     body.parentNode.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
