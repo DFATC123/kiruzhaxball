@@ -115,6 +115,7 @@ let lastMessage;
 let joystick;
 let kickButton;
 let floatingBtn;
+let isTouching = false;
 
 ///////////////////////////////////////// MAIN /////////////////////////////////////////
 var checkLoaderInterval = setInterval(checkLoader, 1000);
@@ -134,6 +135,7 @@ function init() {
 
     setupCountryFilter();
     setupControls();
+    setupAim();
     setupCopyright(true);
     hideButtons.remove();
 
@@ -394,7 +396,7 @@ function onControlsSettingsInput() {
     updateControlsOptions(inputs[0].children[2].value, inputs[1].children[2].value, inputs[2].children[2].value);
 }
 function getColors() {
-    try { return Object.assign({}, DEFAULT_COLORS, JSON.parse(localStorage.getItem("controls_colors") || "{}")); } 
+    try { return Object.assign({}, DEFAULT_COLORS, JSON.parse(localStorage.getItem("controls_colors") || "{}")); }
     catch { return {...DEFAULT_COLORS}; }
 }
 function applyColors(c) {
@@ -467,7 +469,7 @@ function setupControls() {
     // Tạo bảng Setting bằng mã nhà làm, không dùng class của Haxball
     inputOptionsHandler.id = "kiruz-settings-menu";
     inputOptionsHandler.setAttribute("hidden", "");
-    
+
     let colorRows = "";
     for (const key in COLOR_LABELS) {
         colorRows += `
@@ -502,7 +504,7 @@ function setupControls() {
             <h2 style="margin: 0; font-size: 1.5rem;">Cài Đặt</h2>
             <button data-hook="closeinput" style="background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold; font-size: 1rem;">Đóng</button>
         </div>
-        
+
         <div class="my-custom-row">
             <div>Kích thước</div><div>20</div><input class="slider" type="range" min="10" max="30" step="0.01">
         </div>
@@ -512,16 +514,27 @@ function setupControls() {
         <div class="my-custom-row">
             <div>Độ mờ</div><div>1</div><input class="slider" type="range" min="0.2" max="1" step="0.01">
         </div>
-        
+
         <button data-hook="resetinput" style="background: #555; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; font-weight:bold; margin-bottom: 20px;">Reset Kích Thước</button>
+
+        <h2 style="text-align: center; margin-bottom: 15px;">Đường ngắm 🎯</h2>
+        <div class="my-custom-row">
+            <div>Độ dài</div><div data-aimval="len">400</div><input data-aim="len" class="slider" type="range" min="100" max="1500" step="10">
+        </div>
+        <div class="my-custom-row">
+            <div>Độ nhạy màu</div><div data-aimval="tol">30</div><input data-aim="tol" class="slider" type="range" min="10" max="70" step="1">
+        </div>
+        <div class="my-custom-row">
+            <div>Độ dày</div><div data-aimval="width">3</div><input data-aim="width" class="slider" type="range" min="1" max="8" step="1">
+        </div>
 
         <h2 style="text-align: center; margin-bottom: 15px;">Màu Sắc</h2>
         ${colorRows}
-        
+
         <button data-hook="resetcolors" style="background: #ff9800; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
     </div>
     `;
-    
+
     body.parentNode.appendChild(inputOptionsHandler);
 
     // Nút bánh răng lơ lửng (Nút R)
@@ -538,7 +551,7 @@ function setupControls() {
     inputOptionsHandler.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
         inputOptionsHandler.setAttribute("hidden", ""); showControls(false);
     });
-    
+
     // Event Slider
     inputOptionsHandler.querySelector('[data-hook="resetinput"]').addEventListener("click", function() {
         updateControlsOptions(20, 5, 1, true);
@@ -558,7 +571,7 @@ function setupControls() {
             const currentColors = getColors();
             currentColors[groupKey] = color;
             applyColors(currentColors);
-            
+
             inputOptionsHandler.querySelectorAll(`[data-color-group="${groupKey}"] .color-box`).forEach(b => b.style.border = "2px solid #555");
             e.target.style.border = "4px solid white";
         });
@@ -598,6 +611,251 @@ function setupControls() {
     resetJoystick();
 }
 
+///////////////////////////////////////// AIM LINE /////////////////////////////////////////
+// Cách dùng: bấm 🎯 -> chạm vào cầu thủ của mình -> chạm vào bóng. Xong.
+// Đường ngắm: cầu thủ -> bóng -> kéo dài. Màu được lưu lại cho lần sau.
+const AIM = {
+    on: true, len: 400, tol: 30, width: 3,
+    player: null, ball: null,          // màu {r,g,b}
+    pp: null, bp: null,                // vị trí (toạ độ canvas)
+    pSeen: 0, bSeen: 0, frame: 0
+};
+let aimCanvas, aimCtx, workCv, workCtx, aimUI, aimBtnOn, aimHint, aimPicking = false;
+const gameFrameEl = document.querySelector('.gameframe');
+
+function loadAimCfg() {
+    try { Object.assign(AIM, JSON.parse(localStorage.getItem('aim_cfg') || '{}')); } catch {}
+}
+function saveAimCfg() {
+    localStorage.setItem('aim_cfg', JSON.stringify({
+        on: AIM.on, len: AIM.len, tol: AIM.tol, width: AIM.width, player: AIM.player, ball: AIM.ball
+    }));
+}
+
+function getGameCanvas() {
+    let best = null, area = 0;
+    gameFrame.document.querySelectorAll('canvas').forEach(c => {
+        const a = c.width * c.height;
+        if (a > area) { area = a; best = c; }
+    });
+    return best;
+}
+
+// Quy đổi toạ độ chạm trên màn hình -> toạ độ canvas game
+function screenToCanvas(cv, cx, cy) {
+    const f = gameFrameEl.getBoundingClientRect();
+    const r = cv.getBoundingClientRect();
+    return {
+        x: (cx - f.left - r.left) * cv.width / r.width,
+        y: (cy - f.top - r.top) * cv.height / r.height
+    };
+}
+
+// Lấy màu "nổi bật" nhất quanh điểm chạm (bỏ qua cỏ / trắng / xám / đen nếu có màu khác)
+function sampleColor(cv, x, y) {
+    const S = 11, h = S >> 1;
+    const sx = Math.max(0, Math.min(cv.width - S, Math.round(x) - h));
+    const sy = Math.max(0, Math.min(cv.height - S, Math.round(y) - h));
+    workCv.width = S; workCv.height = S;
+    workCtx.drawImage(cv, sx, sy, S, S, 0, 0, S, S);
+    const d = workCtx.getImageData(0, 0, S, S).data;
+    const hist = {};
+    for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 200) continue;
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const bright = (r + g + b) / 3;
+        const grass = g > r + 5 && g > b + 5 && (bright < 155 || (g - r < 20 && g - b < 20));
+        if (grass) continue;
+        const gray = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b)) < 25;
+        const special = gray || bright > 245 || bright < 90;
+        const k = (r >> 4) + ',' + (g >> 4) + ',' + (b >> 4);
+        const e = hist[k] || (hist[k] = { n: 0, r: 0, g: 0, b: 0, w: special ? 1 : 3 });
+        e.n++; e.r += r; e.g += g; e.b += b;
+    }
+    let best = null, bs = 0;
+    for (const k in hist) {
+        const e = hist[k], s = e.n * e.w;
+        if (s > bs) { bs = s; best = e; }
+    }
+    if (!best) {
+        const m = (d.length / 8 | 0) * 4;
+        return { r: d[m], g: d[m + 1], b: d[m + 2] };
+    }
+    return { r: best.r / best.n | 0, g: best.g / best.n | 0, b: best.b / best.n | 0 };
+}
+
+// Tìm tâm các điểm ảnh khớp màu. scale<1 => quét ảnh thu nhỏ (nhanh hơn cho quét toàn màn hình)
+function findColor(cv, col, cx, cy, win, scale) {
+    let x0 = 0, y0 = 0, w = cv.width, h = cv.height;
+    if (win) {
+        x0 = Math.max(0, (cx - win / 2) | 0); y0 = Math.max(0, (cy - win / 2) | 0);
+        w = Math.min(cv.width - x0, win); h = Math.min(cv.height - y0, win);
+    }
+    if (w < 4 || h < 4) return null;
+    const dw = Math.max(1, (w * scale) | 0), dh = Math.max(1, (h * scale) | 0);
+    workCv.width = dw; workCv.height = dh;
+    workCtx.drawImage(cv, x0, y0, w, h, 0, 0, dw, dh);
+    const d = workCtx.getImageData(0, 0, dw, dh).data;
+    const t = AIM.tol * AIM.tol * 3, step = scale < 1 ? 1 : 2;
+    let sx = 0, sy = 0, n = 0;
+    for (let y = 0; y < dh; y += step) {
+        for (let x = 0; x < dw; x += step) {
+            const i = (y * dw + x) * 4;
+            const dr = d[i] - col.r, dg = d[i + 1] - col.g, db = d[i + 2] - col.b;
+            if (dr * dr + dg * dg + db * db < t) { sx += x; sy += y; n++; }
+        }
+    }
+    if (n < 3) return null;
+    return { x: x0 + (sx / n) * (w / dw), y: y0 + (sy / n) * (h / dh) };
+}
+
+function track(cv, col, pos, seenKey) {
+    const now = performance.now();
+    let p = null;
+    if (pos) p = findColor(cv, col, pos.x, pos.y, 260, 1);
+    if (!p && (!pos || AIM.frame % 15 === 0)) p = findColor(cv, col, 0, 0, 0, 0.35);
+    if (p) { AIM[seenKey] = now; return p; }
+    return (now - AIM[seenKey] < 600) ? pos : null;   // mất quá 0.6s thì ẩn
+}
+
+function layoutAimCanvas(cv) {
+    const f = gameFrameEl.getBoundingClientRect();
+    const r = cv.getBoundingClientRect();
+    const s = aimCanvas.style;
+    s.left = (f.left + r.left) + 'px'; s.top = (f.top + r.top) + 'px';
+    s.width = r.width + 'px'; s.height = r.height + 'px';
+    if (aimCanvas.width !== cv.width || aimCanvas.height !== cv.height) {
+        aimCanvas.width = cv.width; aimCanvas.height = cv.height;
+    }
+    return cv.width / r.width;   // hệ số quy đổi để nét vẽ không bị mỏng/dày bất thường
+}
+
+function drawAim(k) {
+    const bp = AIM.bp, pp = AIM.pp;
+    if (!bp || !pp) return;
+    const dx = bp.x - pp.x, dy = bp.y - pp.y, dist = Math.hypot(dx, dy);
+    if (dist < 1) return;
+    const len = AIM.len * k, lw = AIM.width * k;
+    const ex = bp.x + dx / dist * len, ey = bp.y + dy / dist * len;
+    aimCtx.lineCap = 'round';
+    aimCtx.strokeStyle = 'rgba(220,220,240,0.55)';
+    aimCtx.lineWidth = lw * 0.7;
+    aimCtx.beginPath(); aimCtx.moveTo(pp.x, pp.y); aimCtx.lineTo(bp.x, bp.y); aimCtx.stroke();
+    const g = aimCtx.createLinearGradient(bp.x, bp.y, ex, ey);
+    g.addColorStop(0, 'rgba(255,60,60,0.95)');
+    g.addColorStop(1, 'rgba(255,60,60,0.1)');
+    aimCtx.strokeStyle = g;
+    aimCtx.lineWidth = lw;
+    aimCtx.beginPath(); aimCtx.moveTo(bp.x, bp.y); aimCtx.lineTo(ex, ey); aimCtx.stroke();
+    aimCtx.fillStyle = '#ff3c3c';
+    aimCtx.beginPath(); aimCtx.arc(ex, ey, lw * 2, 0, Math.PI * 2); aimCtx.fill();
+}
+
+function isPlaying() {
+    return body && body.querySelector('.game-view') && !body.querySelector('.room-view') &&
+           !body.querySelector('.settings-view') && inputOptionsHandler.getAttribute('hidden') !== null;
+}
+
+function aimLoop() {
+    requestAnimationFrame(aimLoop);
+    AIM.frame++;
+    const show = body && body.querySelector('.game-view') && !body.querySelector('.room-view') &&
+                 !body.querySelector('.settings-view') && inputOptionsHandler.getAttribute('hidden') !== null;
+    aimUI.style.display = show ? 'flex' : 'none';
+    aimCanvas.style.display = show ? 'block' : 'none';
+    if (!show) return;
+
+    const cv = getGameCanvas();
+    if (!cv) return;
+    const k = layoutAimCanvas(cv);
+    aimCtx.clearRect(0, 0, aimCanvas.width, aimCanvas.height);
+    if (!AIM.on || aimPicking || !AIM.ball || !AIM.player) return;
+
+    if (AIM.frame % 2 === 0) {            // dò 30 lần/giây là đủ, đỡ nặng máy
+        try {
+            AIM.bp = track(cv, AIM.ball, AIM.bp, 'bSeen');
+            AIM.pp = track(cv, AIM.player, AIM.pp, 'pSeen');
+        } catch {}
+    }
+    drawAim(k);
+}
+
+// Chọn lần lượt: cầu thủ -> bóng
+function startPick() {
+    const cv = getGameCanvas();
+    if (!cv) return;
+    aimPicking = true;
+    const steps = [['player', 'Chạm vào CẦU THỦ của bạn'], ['ball', 'Chạm vào BÓNG']];
+    let i = 0;
+    const layer = document.createElement('div');
+    layer.style.cssText = 'position:fixed;inset:0;z-index:9500;touch-action:none;background:rgba(0,0,0,0.15)';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'position:absolute;top:20px;width:100%;text-align:center;color:#fff;font:bold 18px sans-serif;text-shadow:0 0 4px #000';
+    msg.textContent = '(1/2) ' + steps[0][1];
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Huỷ';
+    cancel.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:8px;background:#c13535;color:#fff;border:none;font-weight:bold;font-size:16px';
+    cancel.addEventListener('pointerdown', e => { e.stopPropagation(); layer.remove(); aimPicking = false; });
+    layer.append(msg, cancel);
+    layer.addEventListener('pointerdown', e => {
+        if (e.target === cancel) return;
+        e.preventDefault();
+        const c = getGameCanvas();
+        if (!c) return;
+        const p = screenToCanvas(c, e.clientX, e.clientY);
+        const col = sampleColor(c, p.x, p.y);
+        if (steps[i][0] === 'player') { AIM.player = col; AIM.pp = p; AIM.pSeen = performance.now(); }
+        else { AIM.ball = col; AIM.bp = p; AIM.bSeen = performance.now(); }
+        i++;
+        if (i >= steps.length) {
+            layer.remove(); aimPicking = false; AIM.on = true; refreshAimBtn(); saveAimCfg();
+        } else {
+            msg.textContent = '(2/2) ' + steps[1][1];
+        }
+    });
+    document.body.appendChild(layer);
+}
+
+function refreshAimBtn() { aimBtnOn.style.opacity = AIM.on ? 1 : 0.4; }
+
+function setupAim() {
+    loadAimCfg();
+    workCv = document.createElement('canvas');
+    workCtx = workCv.getContext('2d', { willReadFrequently: true });
+
+    aimCanvas = document.createElement('canvas');
+    aimCanvas.style.cssText = 'position:fixed;pointer-events:none;z-index:50;display:none';
+    document.body.appendChild(aimCanvas);
+    aimCtx = aimCanvas.getContext('2d');
+
+    aimUI = document.createElement('div');
+    aimUI.style.cssText = 'position:fixed;top:80px;right:15px;z-index:8888;display:none;flex-direction:column;gap:10px';
+    const mk = (txt, fn) => {
+        const b = document.createElement('button');
+        b.textContent = txt;
+        b.style.cssText = 'width:55px;height:55px;border-radius:50%;background:#1a2125cc;color:#ecf0f3;border:2px solid #ecf0f3;font-size:24px;padding:0;display:flex;align-items:center;justify-content:center;line-height:1';
+        b.addEventListener('click', fn);
+        aimUI.appendChild(b);
+        return b;
+    };
+    mk('🎯', startPick);                                           // chọn cầu thủ + bóng
+    aimBtnOn = mk('👁', () => { AIM.on = !AIM.on; refreshAimBtn(); saveAimCfg(); });   // bật/tắt
+    document.body.appendChild(aimUI);
+    refreshAimBtn();
+
+    // Slider trong menu cài đặt
+    inputOptionsHandler.querySelectorAll('[data-aim]').forEach(inp => {
+        const key = inp.getAttribute('data-aim');
+        const label = inputOptionsHandler.querySelector('[data-aimval="' + key + '"]');
+        inp.value = AIM[key]; label.textContent = AIM[key];
+        inp.addEventListener('input', () => {
+            AIM[key] = +inp.value; label.textContent = inp.value; saveAimCfg();
+        });
+    });
+
+    aimLoop();
+}
+
 ///////////////////////////////////////// GAMEPAD /////////////////////////////////////////
 let previousDigitalStickState = "";
 let previousAnalogStickState = "";
@@ -613,7 +871,7 @@ function checkGamepadState(gamepad) {
     if (digitalStickState.changed) { emulateKeys(digitalStickState.direction); previousDigitalStickState = digitalStickState.direction; }
     const analogStickState = getAnalogStickState(axes[2], axes[3]);
     if (analogStickState.changed) { emulateKeys(analogStickState.direction); previousAnalogStickState = analogStickState.direction; }
-    if ((buttons[0].pressed || buttons[2].pressed) && !isXButtonPressed) { kick("keydown"); isXButtonPressed = true; } 
+    if ((buttons[0].pressed || buttons[2].pressed) && !isXButtonPressed) { kick("keydown"); isXButtonPressed = true; }
     else if (!buttons[0].pressed && !buttons[2].pressed) { kick("keyup"); isXButtonPressed = false; }
     checkGamepadState(navigator.getGamepads()[gamepad.index]);
   });
