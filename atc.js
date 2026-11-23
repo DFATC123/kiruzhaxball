@@ -91,7 +91,6 @@ const COLOR_LABELS = {
   kickIcon: "Icon Nút Đá"
 };
 
-// Bảng màu có sẵn cho Mobile dễ chọn
 const PRESET_COLORS = [
   "#c2c2c255", "#ecf0f3cc", "#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff",
   "#1a2125", "#ffffff", "#ff9800", "#4caf50", "#2196f3", "#e91e63", "#9c27b0", "#000000"
@@ -189,7 +188,7 @@ function setupCountryFilter() {
 }
 function setupCopyright() {
     copyrightHandler.setAttribute("data-hook", "copyright");
-    copyrightHandler.setAttribute("style", "text-align:center;position:absolute;bottom:15px;width:100%; display: block");
+    copyrightHandler.setAttribute("style", "text-align:center;position:absolute;bottom:15px;width:100%; display: block; z-index: 10;");
     copyrightHandler.innerHTML = '2024 Vixel Dev. Original game by Mario Carbajal (@basro)';
     document.body.appendChild(copyrightHandler);
 }
@@ -465,7 +464,7 @@ function buildSettingsHTML() {
     let colorRows = "";
     for (const key in COLOR_LABELS) {
         colorRows += `
-        <div style="margin-bottom: 12px; background: #2a343a; padding: 10px; border-radius: 8px;">
+        <div style="margin-bottom: 15px; background: #2a343a; padding: 10px; border-radius: 8px;">
             <div style="margin-bottom: 8px; color: white; font-weight: bold; font-size: 14px;">${COLOR_LABELS[key]}</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;" data-color-group="${key}">
                 ${PRESET_COLORS.map(color => `<div class="color-box" data-color="${color}" style="width:35px; height:35px; border-radius:50%; background-color:${color}; border: 2px solid #555; cursor: pointer; box-sizing:border-box;"></div>`).join('')}
@@ -473,9 +472,9 @@ function buildSettingsHTML() {
         </div>`;
     }
     return `
-<div class="dialog settings-view" style="height:min-content; padding-bottom: 40px; max-height: 90vh; overflow-y: auto;">
+<div class="dialog settings-view" style="height:85vh !important; max-height:85vh !important; overflow-y:auto !important; display:block !important; padding-bottom: 40px; margin-top: 5vh;">
   <h1 style="margin-bottom: 20px;">Cài đặt Phím & Màu</h1>
-  <button data-hook="closeinput" style="position:absolute;top:12px;right:10px; background: #333; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold;">Đóng</button>
+  <button data-hook="closeinput" style="position:absolute;top:12px;right:12px; background: #c13535; color: white; padding: 8px 15px; border-radius: 5px; border: none; font-weight:bold; z-index: 99;">Đóng</button>
 
   <div class="tabcontents">
     <div class="section selected">
@@ -489,7 +488,7 @@ function buildSettingsHTML() {
       <h2 style="margin:15px 0; color: white; text-align:center;">Bảng Chọn Màu</h2>
       ${colorRows}
       <br>
-      <button data-hook="resetcolors" style="background: #c13535; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
+      <button data-hook="resetcolors" style="background: #ff9800; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; margin-bottom: 10px; font-weight:bold;">Khôi phục màu gốc</button>
       <button data-hook="hidepanel" style="background: #2196f3; color: white; padding: 12px; border-radius: 5px; border: none; width: 100%; font-weight:bold;">Ẩn Bảng</button>
     </div>
   </div>
@@ -502,6 +501,8 @@ function setupControls() {
     inputOptionsHandler.setAttribute("class", "input-options");
     inputOptionsHandler.setAttribute("hidden", "");
     inputOptionsHandler.innerHTML = buildSettingsHTML();
+    // Ép thẻ cha bên ngoài cũng phải cho phép cuộn
+    inputOptionsHandler.style.overflowY = "auto";
     body.parentNode.appendChild(inputOptionsHandler);
 
     body.parentNode.querySelector('[data-hook="closeinput"]').addEventListener("click", function() {
